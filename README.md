@@ -11,7 +11,7 @@ Instead of acting as just another portfolio tracker, the platform helps users un
 
 ---
 
-## Detailed Project Description (200 words or less)
+## Project Description 
 
 Wealth Wellness Hub is an integrated platform that helps investors and advisers view their full financial position in one place. It unifies fragmented assets across cash, equities, bonds, crypto, private holdings, property, CPF, and liabilities into a single Wealth Wallet dashboard.
 
