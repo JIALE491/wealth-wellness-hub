@@ -57,6 +57,14 @@ public class PortfolioService {
                 a.setSource(parts[colIndex.get("source")].trim());
 
                 // Optional live-price columns
+                // Optional entry_type (asset or debt), default "asset"
+                if (colIndex.containsKey("entry_type") && colIndex.get("entry_type") < parts.length) {
+                    String et = parts[colIndex.get("entry_type")].trim();
+                    a.setEntryType(et.isEmpty() ? "asset" : et.toLowerCase());
+                } else {
+                    a.setEntryType("asset");
+                }
+
                 if (colIndex.containsKey("ticker") && colIndex.get("ticker") < parts.length) {
                     String t = parts[colIndex.get("ticker")].trim();
                     if (!t.isEmpty()) a.setTicker(t);

@@ -11,6 +11,7 @@ public class Asset {
     private Double quantity;
     private String priceSource;
     private Double livePrice;
+    private String entryType; // "asset" or "debt", defaults to "asset"
 
     public String getAssetName() { return assetName; }
     public void setAssetName(String assetName) { this.assetName = assetName; }
@@ -41,4 +42,7 @@ public class Asset {
 
     public Double getLivePrice() { return livePrice; }
     public void setLivePrice(Double livePrice) { this.livePrice = livePrice; }
+
+    public String getEntryType() { return entryType != null ? entryType : "asset"; }
+    public void setEntryType(String entryType) { this.entryType = entryType; }
 }

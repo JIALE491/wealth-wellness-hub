@@ -78,24 +78,50 @@ public class PortfolioController {
             CustomScenario cs = request.getCustomScenario();
             boolean hasScenario = cs != null && cs.getAssetClass() != null;
 
-            List<Asset> assets = hasScenario
+            // Apply scenario (debts are automatically skipped inside ScenarioService)
+            List<Asset> allAssets = hasScenario
                     ? scenarioService.applyCustomScenario(base, cs)
                     : new ArrayList<>(base);
 
-            double baseNetWorth = base.stream().mapToDouble(Asset::getValueSgd).sum();
-            double netWorth     = assets.stream().mapToDouble(Asset::getValueSgd).sum();
-            double worstDrop    = scenarioService.worstReferenceDropPct(base);
+            // Split into assets vs debts for separate accounting
+            List<Asset> assetsOnly = allAssets.stream()
+                    .filter(a -> !"debt".equalsIgnoreCase(a.getEntryType()))
+                    .collect(java.util.stream.Collectors.toList());
+            List<Asset> baseAssetsOnly = base.stream()
+                    .filter(a -> !"debt".equalsIgnoreCase(a.getEntryType()))
+                    .collect(java.util.stream.Collectors.toList());
+
+            double totalDebts = base.stream()
+                    .filter(a -> "debt".equalsIgnoreCase(a.getEntryType()))
+                    .mapToDouble(Asset::getValueSgd).sum();
+            double totalAssets    = assetsOnly.stream().mapToDouble(Asset::getValueSgd).sum();
+            double netWorth       = totalAssets - totalDebts;
+            double baseNetWorth   = baseAssetsOnly.stream().mapToDouble(Asset::getValueSgd).sum() - totalDebts;
+            double cashOnHand     = assetsOnly.stream()
+                    .filter(a -> "Cash".equalsIgnoreCase(a.getAssetClass()))
+                    .mapToDouble(Asset::getValueSgd).sum();
+            double investable     = assetsOnly.stream()
+                    .filter(a -> a.getLiquidityDays() <= 7)
+                    .mapToDouble(Asset::getValueSgd).sum();
+            double worstDrop      = scenarioService.worstReferenceDropPct(baseAssetsOnly);
 
             AnalysisResult result = new AnalysisResult();
             result.setNetWorth(netWorth);
             result.setBaseNetWorth(baseNetWorth);
             result.setDelta(netWorth - baseNetWorth);
-            result.setAssets(assets);
-            result.setAllocation(scoringService.computeAllocation(assets));
-            result.setDiversificationScore(scoringService.diversificationScore(assets));
-            result.setLiquidityScore(scoringService.liquidityScore(assets));
+            result.setTotalAssets(totalAssets);
+            result.setTotalDebts(totalDebts);
+            result.setCashOnHand(cashOnHand);
+            result.setInvestableAssets(investable);
+            result.setAssets(allAssets);
+            result.setAllocation(scoringService.computeAllocation(assetsOnly));
+            result.setDiversificationScore(scoringService.diversificationScore(assetsOnly));
+            result.setLiquidityScore(scoringService.liquidityScore(assetsOnly));
             result.setWorstDropPct(worstDrop);
             result.setResilienceScore(scoringService.resilienceScore(worstDrop));
+            result.setDebtHealthScore(scoringService.debtHealthScore(totalAssets, totalDebts));
+            result.setConcentrationScore(scoringService.concentrationScore(assetsOnly));
+            result.setEmergencyFundScore(scoringService.emergencyFundScore(cashOnHand, totalAssets));
 
             List<String> issues = new ArrayList<>();
             if (result.getDiversificationScore() < 40) issues.add("high concentration risk");
@@ -103,10 +129,10 @@ public class PortfolioController {
             if (result.getResilienceScore() < 50)      issues.add("fragile under stress scenarios");
             result.setHealthIssues(issues);
 
-            result.setAlerts(recommendationService.generateAlerts(assets));
-            result.setRecommendations(recommendationService.generateRecommendations(assets));
+            result.setAlerts(recommendationService.generateAlerts(assetsOnly));
+            result.setRecommendations(recommendationService.generateRecommendations(assetsOnly));
             result.setScenarioImpact(hasScenario
-                    ? scenarioService.computeImpact(base, assets)
+                    ? scenarioService.computeImpact(base, allAssets)
                     : List.of());
 
             result.setPricesUpdatedAt(Instant.now().toString());
