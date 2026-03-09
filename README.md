@@ -14,6 +14,18 @@ A single “Wealth Wallet” dashboard that aggregates fragmented assets (cash, 
 4. Run scenario shocks (one-click buttons)
 5. Output 3 recommendations tied to the scores
 
+## Data Unification & Security (Demo)
+
+**Unify**
+- Aggregates **traditional + digital + private assets** into one portfolio view using a single CSV schema (Cash / Equity / Bonds / Crypto / Private).
+
+**Secure (for hackathon demo)**
+- **Local-only processing:** uploaded CSV is processed in-memory; **no database storage** by default.
+- **No credentials / no PII required** for the demo; no external sharing.
+
+**Trust & Validation**
+- **Strict CSV validation:** required columns + type checks; invalid files are rejected with clear error messages.
+
 ## Demo Screenshots
 
 **1) Baseline portfolio view (Crypto-heavy)**
