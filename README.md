@@ -1,6 +1,6 @@
 # Wealth Wellness Hub
 
-**Team:** [Insert Team Name]
+**Team:** 404
 **Hackathon:** FinTech Innovators Hackathon 2026
 
 Wealth Wellness Hub is a financial wellness platform that **unifies fragmented assets into a single Wealth Wallet and evaluates an investor’s overall financial health**.
