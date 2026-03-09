@@ -423,10 +423,6 @@ MIT License.
 
 ````
 
-One important extra change: also update your GitHub **About** description to this:
 
-```text
-Unified wealth wallet for traditional, private, and digital assets with financial wellness scoring, stress testing, and personalised recommendations.
-````
 
 
