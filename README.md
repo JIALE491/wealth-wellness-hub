@@ -38,11 +38,11 @@ A single “Wealth Wallet” dashboard that aggregates fragmented assets (cash, 
 
 ## How to run
 
-```bash
-# (Recommended) create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+cd backend
+mvn spring-boot:run
+# runs on http://localhost:8080
 
-pip install -r requirements.txt
-streamlit run app.py
-# then open: http://localhost:8501
+cd frontend
+npm install
+npm run dev
+# runs on http://localhost:5173 (or 5174/5175)
