@@ -47,8 +47,6 @@ A single “Wealth Wallet” dashboard that aggregates fragmented assets (cash, 
 cd backend
 mvn spring-boot:run
 
-### 1) Frontend (Terminal 2)
-```bash
 cd frontend
 npm install
 npm run dev
