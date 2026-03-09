@@ -14,6 +14,27 @@ A single “Wealth Wallet” dashboard that aggregates fragmented assets (cash, 
 4. Run scenario shocks (one-click buttons)
 5. Output 3 recommendations tied to the scores
 
+## Financial Wellness Metrics (Explainable)
+
+We compute 3 simple, explainable scores (0–100). Higher is better.
+
+1) **Diversification Score (concentration risk)**
+- Measures how concentrated the portfolio is across asset classes.
+- Triggers: **Low < 40**, **Medium 40–70**, **High > 70**
+- Alert example: “High concentration in Crypto / Private.”
+
+2) **Liquidity Score (near-term cashability)**
+- Measures how much of the portfolio can be converted to cash quickly (e.g., within **7 days**).
+- Triggers: **Low < 30**, **Medium 30–70**, **High > 70**
+- Alert example: “Only X% is liquid within 7 days.”
+
+3) **Resilience Score (stress-test based)**
+- Computes worst-case portfolio drop across built-in scenario shocks (e.g., Crypto -30%, Equity -10%, Bonds -5%).
+- Triggers: **Low < 40**, **Medium 40–70**, **High > 70**
+- Alert example: “Worst-case drawdown is Y%.”
+
+> Note: Scores are heuristic for demo purposes, designed for interpretability and actionable insights.
+
 ## Data Unification & Security (Demo)
 
 **Unify**
