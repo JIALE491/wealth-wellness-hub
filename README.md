@@ -36,13 +36,17 @@ A single “Wealth Wallet” dashboard that aggregates fragmented assets (cash, 
 5. Switch to sample: `property_heavy`
 6. Highlight **low liquidity** + recommendation to build cash buffer
 
-## How to run
+## How to run (Local)
 
+### Prerequisites
+- **Java 17+** and **Maven**
+- **Node.js 18+** (recommended)
+
+### 1) Backend (Terminal 1)
+```bash
 cd backend
 mvn spring-boot:run
-# runs on http://localhost:8080
 
 cd frontend
 npm install
 npm run dev
-# runs on http://localhost:5173 (or 5174/5175)
