@@ -1,30 +1,6 @@
-import { useState, useEffect } from 'react'
-import { fetchOhlc } from '../api/portfolioApi'
-import CandlestickChart from './CandlestickChart'
-
-const RANGES = [
-  { label: '1M', value: '1mo' },
-  { label: '3M', value: '3mo' },
-  { label: '6M', value: '6mo' },
-  { label: '1Y', value: '1y' },
-]
+import TradingViewChart from './TradingViewChart'
 
 export default function AssetModal({ asset, onClose }) {
-  const [range, setRange] = useState('3mo')
-  const [ohlc, setOhlc] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-
-  useEffect(() => {
-    if (!asset?.ticker) return
-    setLoading(true)
-    setError(null)
-    fetchOhlc(asset.ticker, range)
-      .then(setOhlc)
-      .catch(e => setError(e.response?.data?.error || e.message))
-      .finally(() => setLoading(false))
-  }, [asset, range])
-
   if (!asset) return null
 
   const fmtSgd = (v) =>
@@ -32,7 +8,7 @@ export default function AssetModal({ asset, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()}>
+      <div className="modal-box modal-box--wide" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="modal-header">
@@ -43,7 +19,7 @@ export default function AssetModal({ asset, onClose }) {
             </div>
             <div className="modal-meta">
               {asset.assetClass}
-              {asset.ticker && <> · <code>{asset.ticker}</code></>}
+              {asset.ticker   && <> · <code>{asset.ticker}</code></>}
               {asset.quantity && <> · {asset.quantity} units</>}
             </div>
           </div>
@@ -76,37 +52,8 @@ export default function AssetModal({ asset, onClose }) {
           </div>
         </div>
 
-        {/* Chart — only for assets with a ticker */}
-        {asset.ticker ? (
-          <>
-            <div className="modal-range-bar">
-              {RANGES.map(r => (
-                <button
-                  key={r.value}
-                  className={`range-btn ${range === r.value ? 'active' : ''}`}
-                  onClick={() => setRange(r.value)}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-
-            {loading && (
-              <div style={{ height: 320, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', color: '#555b6e' }}>
-                <div className="spinner" style={{ marginRight: 10 }} /> Loading chart...
-              </div>
-            )}
-            {error && <div className="alert danger">{error}</div>}
-            {!loading && !error && ohlc && (
-              <CandlestickChart bars={ohlc.bars} currency={ohlc.currency} />
-            )}
-          </>
-        ) : (
-          <div style={{ padding: '24px 0', color: '#555b6e', fontSize: 13, textAlign: 'center' }}>
-            No market ticker — candlestick chart unavailable for manually-valued assets.
-          </div>
-        )}
+        {/* TradingView chart */}
+        <TradingViewChart ticker={asset.ticker} assetClass={asset.assetClass} />
 
       </div>
     </div>

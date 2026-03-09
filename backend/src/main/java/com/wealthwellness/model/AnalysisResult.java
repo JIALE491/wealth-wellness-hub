@@ -18,6 +18,13 @@ public class AnalysisResult {
     private List<Recommendation> recommendations;
     private List<ScenarioImpactItem> scenarioImpact;
     private String pricesUpdatedAt;
+    private double totalAssets;
+    private double totalDebts;
+    private double cashOnHand;
+    private double investableAssets;
+    private double debtHealthScore;
+    private double concentrationScore;
+    private double emergencyFundScore;
 
     public double getNetWorth() { return netWorth; }
     public void setNetWorth(double netWorth) { this.netWorth = netWorth; }
@@ -63,4 +70,25 @@ public class AnalysisResult {
 
     public String getPricesUpdatedAt() { return pricesUpdatedAt; }
     public void setPricesUpdatedAt(String pricesUpdatedAt) { this.pricesUpdatedAt = pricesUpdatedAt; }
+
+    public double getTotalAssets() { return totalAssets; }
+    public void setTotalAssets(double totalAssets) { this.totalAssets = totalAssets; }
+
+    public double getTotalDebts() { return totalDebts; }
+    public void setTotalDebts(double totalDebts) { this.totalDebts = totalDebts; }
+
+    public double getCashOnHand() { return cashOnHand; }
+    public void setCashOnHand(double cashOnHand) { this.cashOnHand = cashOnHand; }
+
+    public double getInvestableAssets() { return investableAssets; }
+    public void setInvestableAssets(double investableAssets) { this.investableAssets = investableAssets; }
+
+    public double getDebtHealthScore() { return debtHealthScore; }
+    public void setDebtHealthScore(double debtHealthScore) { this.debtHealthScore = debtHealthScore; }
+
+    public double getConcentrationScore() { return concentrationScore; }
+    public void setConcentrationScore(double concentrationScore) { this.concentrationScore = concentrationScore; }
+
+    public double getEmergencyFundScore() { return emergencyFundScore; }
+    public void setEmergencyFundScore(double emergencyFundScore) { this.emergencyFundScore = emergencyFundScore; }
 }

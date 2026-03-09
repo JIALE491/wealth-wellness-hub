@@ -12,7 +12,9 @@ import java.util.stream.Collectors;
 public class ScenarioService {
 
     public static final List<String> ASSET_CLASSES =
-            List.of("All Assets", "Cash", "Equity", "Bonds", "Crypto", "Private");
+            List.of("All Assets", "Cash", "Equity", "Bonds", "Crypto",
+                    "Commodities", "RealEstate", "Property",
+                    "PrivateEquity", "Collectibles", "CPF", "Private");
 
     /**
      * Apply a custom scenario: shift a given asset class (or all) by changePercent.
@@ -21,8 +23,9 @@ public class ScenarioService {
         if (cs == null) return new ArrayList<>(assets);
         double multiplier = 1.0 + cs.getChangePercent() / 100.0;
         return assets.stream().map(a -> {
-            boolean applies = "All Assets".equals(cs.getAssetClass())
-                    || cs.getAssetClass().equals(a.getAssetClass());
+            boolean isDebt = "debt".equalsIgnoreCase(a.getEntryType());
+            boolean applies = !isDebt && ("All Assets".equals(cs.getAssetClass())
+                    || cs.getAssetClass().equals(a.getAssetClass()));
             Asset copy = copyAsset(a);
             if (applies) copy.setValueSgd(a.getValueSgd() * multiplier);
             return copy;
@@ -95,6 +98,7 @@ public class ScenarioService {
         copy.setQuantity(a.getQuantity());
         copy.setPriceSource(a.getPriceSource());
         copy.setLivePrice(a.getLivePrice());
+        copy.setEntryType(a.getEntryType());
         return copy;
     }
 

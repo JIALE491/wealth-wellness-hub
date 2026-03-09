@@ -4,11 +4,23 @@ function scoreColor(score) {
   return '#e74c3c'
 }
 
-export default function ScoreCard({ label, score, subtitle }) {
+function TooltipIcon({ text }) {
+  return (
+    <span className="tooltip-wrap">
+      <span className="tooltip-icon">?</span>
+      <span className="tooltip-box">{text}</span>
+    </span>
+  )
+}
+
+export default function ScoreCard({ label, score, subtitle, tooltip }) {
   const color = scoreColor(score)
   return (
     <div className="score-card">
-      <div className="s-label">{label} Score</div>
+      <div className="s-label">
+        {label} Score
+        {tooltip && <TooltipIcon text={tooltip} />}
+      </div>
       <div className="s-value" style={{ color }}>
         {score.toFixed(0)}<span className="s-denom">/100</span>
       </div>

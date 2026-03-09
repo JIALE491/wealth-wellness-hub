@@ -20,7 +20,7 @@ const CustomTooltip = ({ active, payload }) => {
     }}>
       <strong>{assetClass}</strong>
       <div>S$ {valueSgd.toLocaleString('en-SG', { maximumFractionDigits: 0 })}</div>
-      <div style={{ color: '#555b6e' }}>{(weight * 100).toFixed(1)}% of portfolio</div>
+      <div style={{ color: '#8b92a5' }}>{(weight * 100).toFixed(1)}% of portfolio</div>
     </div>
   )
 }
