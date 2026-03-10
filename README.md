@@ -373,8 +373,11 @@ http://localhost:5173
 ### Prerequisite
 Please install Docker Desktop before running the project.
 
-### Start the app
-From the project root, run:
+### Step 1: Get the project files
+Either clone the repository or download it as a ZIP from GitHub and extract it.
+
+### Step 2: Start the app
+Open a terminal in the project root and run:
 
 ```bash
 docker compose up --build
