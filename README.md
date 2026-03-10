@@ -431,6 +431,7 @@ wealth-wellness-hub/
 ├── .gitignore
 ├── LICENSE
 └── README.md
+```
 
 ---
 
@@ -454,7 +455,7 @@ This repository is provided for educational and hackathon demonstration purposes
 
 MIT License.
 
-````
+
 
 
 
