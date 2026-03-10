@@ -307,33 +307,17 @@ This enables the platform to evaluate overall wealth health rather than isolated
 
 ## Demo Screenshots
 
-> Replace this section with your latest screenshots before final submission.
+### Dashboard Overview
+![Dashboard Overview](docs/screenshots/01-dashboard-overview.png)
 
-### Baseline Portfolio
-
-Add screenshot(s) showing:
-
-* Net worth overview
-* Asset allocation
-* Diversification / liquidity / resilience scores
+### Financial Wellness Scores
+![Financial Wellness Scores](docs/screenshots/02-wellness-scores.png)
 
 ### Scenario Stress Test
+![Scenario Stress Test](docs/screenshots/03-scenario-stress-test.png)
 
-Add screenshot(s) showing:
-
-* Shock applied
-* Score changes
-* Net worth impact
-* Loss drivers
-* Updated recommendations
-
-### Liquidity / Concentration Risk Example
-
-Add screenshot(s) showing:
-
-* A concentrated or illiquid portfolio
-* Associated alerts
-* Recommendation output
+### Alerts and Recommendations
+![Alerts and Recommendations](docs/screenshots/04-alerts-recommendations.png)
 
 ---
 
