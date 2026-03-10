@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getFxRates } from '../api/portfolioApi'
 
 const ASSET_CLASSES = [
   'Cash',
@@ -50,15 +51,30 @@ const TICKER_HINTS = {
   Collectibles: 'No ticker for collectibles',
 }
 
+const CURRENCIES = ['SGD','USD','EUR','GBP','JPY','AUD','HKD','CNY','MYR']
+
 const EMPTY = {
   assetName: '', assetClass: 'Cash', entryType: 'asset',
-  valueSgd: '', liquidityDays: 0, riskTag: 'Low',
+  originalValue: '', currency: 'SGD',
+  liquidityDays: 0, riskTag: 'Low',
   source: '', ticker: '', quantity: '',
 }
 
 export default function AddEntryModal({ onClose, onAdd }) {
-  const [form, setForm] = useState(EMPTY)
-  const [error, setError] = useState(null)
+  const [form,    setForm]    = useState(EMPTY)
+  const [error,   setError]   = useState(null)
+  const [fxRates, setFxRates] = useState({ SGD: 1 })
+
+  useEffect(() => {
+    getFxRates().then(setFxRates).catch(() => {})
+  }, [])
+
+  const sgdEquiv = () => {
+    const v = parseFloat(form.originalValue)
+    if (isNaN(v)) return null
+    const rate = fxRates[form.currency] ?? 1
+    return v * rate
+  }
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }))
 
@@ -77,22 +93,26 @@ export default function AddEntryModal({ onClose, onAdd }) {
     e.preventDefault()
     setError(null)
     if (!form.assetName.trim()) return setError('Name is required.')
-    const val = parseFloat(form.valueSgd)
-    if (isNaN(val) || val < 0) return setError('Enter a valid SGD value.')
+    const origVal = parseFloat(form.originalValue)
+    if (isNaN(origVal) || origVal < 0) return setError('Enter a valid value.')
     if (!form.source.trim()) return setError('Source is required.')
+    const rate   = fxRates[form.currency] ?? 1
+    const valSgd = origVal * rate
 
     onAdd({
-      assetName:    form.assetName.trim(),
-      assetClass:   form.assetClass,
-      entryType:    form.entryType,
-      valueSgd:     val,
+      assetName:     form.assetName.trim(),
+      assetClass:    form.assetClass,
+      entryType:     form.entryType,
+      valueSgd:      valSgd,
+      originalValue: origVal,
+      currency:      form.currency,
       liquidityDays: Number(form.liquidityDays),
-      riskTag:      form.riskTag,
-      source:       form.source.trim(),
-      ticker:       form.ticker.trim() || null,
-      quantity:     form.quantity !== '' ? parseFloat(form.quantity) : null,
-      priceSource:  'manual',
-      livePrice:    null,
+      riskTag:       form.riskTag,
+      source:        form.source.trim(),
+      ticker:        form.ticker.trim() || null,
+      quantity:      form.quantity !== '' ? parseFloat(form.quantity) : null,
+      priceSource:   'manual',
+      livePrice:     null,
     })
     onClose()
   }
@@ -145,17 +165,26 @@ export default function AddEntryModal({ onClose, onAdd }) {
             </div>
           </div>
 
-          {/* Value + Source */}
+          {/* Currency + Value + Source */}
           <div className="form-row">
+            <div className="form-field" style={{ flex: '0 0 100px' }}>
+              <label className="form-label">Currency</label>
+              <select className="form-select" value={form.currency} onChange={e => set('currency', e.target.value)}>
+                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
             <div className="form-field">
-              <label className="form-label">Value (SGD) <span className="form-req">*</span></label>
+              <label className="form-label">Value <span className="form-req">*</span></label>
               <input
                 className="form-input"
                 type="number" min="0" step="any"
                 placeholder="e.g. 50000"
-                value={form.valueSgd}
-                onChange={e => set('valueSgd', e.target.value)}
+                value={form.originalValue}
+                onChange={e => set('originalValue', e.target.value)}
               />
+              {form.currency !== 'SGD' && sgdEquiv() !== null && (
+                <div className="form-hint">≈ S$ {sgdEquiv().toLocaleString('en-SG', { maximumFractionDigits: 0 })} at {(fxRates[form.currency] ?? 1).toFixed(4)}</div>
+              )}
             </div>
             <div className="form-field">
               <label className="form-label">Source <span className="form-req">*</span></label>

@@ -11,7 +11,9 @@ public class Asset {
     private Double quantity;
     private String priceSource;
     private Double livePrice;
-    private String entryType; // "asset" or "debt", defaults to "asset"
+    private String entryType;     // "asset" or "debt", defaults to "asset"
+    private String currency;      // ISO code, e.g. "SGD", "USD", "EUR"
+    private Double originalValue; // value in original currency before FX conversion
 
     public String getAssetName() { return assetName; }
     public void setAssetName(String assetName) { this.assetName = assetName; }
@@ -45,4 +47,10 @@ public class Asset {
 
     public String getEntryType() { return entryType != null ? entryType : "asset"; }
     public void setEntryType(String entryType) { this.entryType = entryType; }
+
+    public String getCurrency() { return currency != null ? currency : "SGD"; }
+    public void setCurrency(String currency) { this.currency = currency; }
+
+    public Double getOriginalValue() { return originalValue; }
+    public void setOriginalValue(Double originalValue) { this.originalValue = originalValue; }
 }

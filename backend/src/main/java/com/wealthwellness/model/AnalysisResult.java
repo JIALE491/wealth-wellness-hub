@@ -1,6 +1,7 @@
 package com.wealthwellness.model;
 
 import java.util.List;
+import java.util.Map;
 
 public class AnalysisResult {
     private double netWorth;
@@ -25,6 +26,8 @@ public class AnalysisResult {
     private double debtHealthScore;
     private double concentrationScore;
     private double emergencyFundScore;
+    private Map<String, Double> currencyExposure; // { "USD" -> 15000, "SGD" -> 30000 } in SGD
+    private Map<String, Double> fxRates;           // { "USD" -> 1.35, "EUR" -> 1.47 }
 
     public double getNetWorth() { return netWorth; }
     public void setNetWorth(double netWorth) { this.netWorth = netWorth; }
@@ -91,4 +94,10 @@ public class AnalysisResult {
 
     public double getEmergencyFundScore() { return emergencyFundScore; }
     public void setEmergencyFundScore(double emergencyFundScore) { this.emergencyFundScore = emergencyFundScore; }
+
+    public Map<String, Double> getCurrencyExposure() { return currencyExposure; }
+    public void setCurrencyExposure(Map<String, Double> currencyExposure) { this.currencyExposure = currencyExposure; }
+
+    public Map<String, Double> getFxRates() { return fxRates; }
+    public void setFxRates(Map<String, Double> fxRates) { this.fxRates = fxRates; }
 }

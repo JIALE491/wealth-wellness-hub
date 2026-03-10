@@ -20,8 +20,13 @@ export const getAssetClasses = async () => {
 }
 
 // customScenario: { assetClass: "Crypto", changePercent: -30 } or null
-export const analyze = async (assets, customScenario) => {
-  const res = await axios.post(`${BASE}/analyze`, { assets, customScenario: customScenario || null })
+// userProfile: { age, riskAppetite, primaryGoal, monthlyIncome } or null
+export const analyze = async (assets, customScenario, userProfile) => {
+  const res = await axios.post(`${BASE}/analyze`, {
+    assets,
+    customScenario: customScenario || null,
+    userProfile: userProfile || null,
+  })
   return res.data
 }
 
@@ -33,4 +38,9 @@ export const fetchOhlc = async (ticker, range = '3mo') => {
 export const refreshPrices = async (assets) => {
   const res = await axios.post(`${BASE}/prices/refresh`, assets)
   return res.data
+}
+
+export const getFxRates = async () => {
+  const res = await axios.get(`${BASE}/fx-rates`)
+  return res.data // { USD: 1.35, EUR: 1.47, ... }
 }
