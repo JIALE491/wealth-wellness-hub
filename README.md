@@ -370,34 +370,36 @@ http://localhost:5173
 
 ## Run with Docker
 
-From the project root:
+### Prerequisite
+Please install Docker Desktop before running the project.
+
+### Start the app
+From the project root, run:
 
 ```bash
 docker compose up --build
 
 Then open:
-
+```
 http://127.0.0.1:3000
 
-To stop the app:
+Demo flow
+
+1. Load the Balanced sample portfolio
+
+2. Review net worth, assets, debts, cash on hand, and investable assets
+
+3. Explore the asset allocation chart and portfolio holdings
+
+4. Use Scenario Lab to simulate a market shock
+
+5. Observe updated financial wellness scores, alerts, and recommendations
+
+6. Click Refresh Prices to fetch supported live prices
+
+Stop the app
 
 docker compose down
-
-Also make sure these are committed:
-- `docker-compose.yml`
-- `backend/Dockerfile`
-- `frontend/Dockerfile`
-- `frontend/nginx.conf`
-- `backend/.dockerignore`
-- `frontend/.dockerignore`
-
-And make sure your `.gitignore` includes:
-
-```gitignore
-.venv/
-node_modules/
-dist/
-backend/target/
 
 ---
 
