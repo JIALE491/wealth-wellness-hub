@@ -1,0 +1,14 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: wealth-wellness-backend
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: wealth-wellness-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
