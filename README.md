@@ -413,14 +413,24 @@ docker compose down
 
 ```text
 wealth-wellness-hub/
-├── backend/             # Spring Boot backend and analytics services
-├── frontend/            # React frontend dashboard
+├── backend/                  # Spring Boot backend and analytics services
+│   ├── src/
+│   ├── .dockerignore
+│   ├── Dockerfile
+│   └── pom.xml
+├── frontend/                 # React frontend dashboard
+│   ├── src/
+│   ├── .dockerignore
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   └── vite.config.js
 ├── docs/
-│   └── screenshots/     # README / pitch demo screenshots
+│   └── screenshots/          # README and pitch demo screenshots
+├── docker-compose.yml        # Full-stack Docker setup
 ├── .gitignore
 ├── LICENSE
 └── README.md
-```
 
 ---
 
