@@ -387,7 +387,7 @@ Then open:
 http://127.0.0.1:3000
 ```
 
-Demo flow
+### Demo flow
 
 1. Load the Balanced sample portfolio
 
@@ -401,7 +401,8 @@ Demo flow
 
 6. Click Refresh Prices to fetch supported live prices
 
-Stop the app
+### Stop the app
+
 ```
 docker compose down
 ```
