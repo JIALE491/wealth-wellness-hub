@@ -182,27 +182,42 @@ public class PriceService {
     }
 
     /**
-     * Fetch USD → SGD exchange rate from ExchangeRate-API (free, no key).
-     * Falls back to 1.35 if unreachable.
+     * Fetch USD → SGD rate (delegates to fetchAllRatesToSgd for consistency).
      */
     public double fetchUsdToSgd() {
+        return fetchAllRatesToSgd().getOrDefault("USD", 1.35);
+    }
+
+    /**
+     * Fetch all major currency → SGD rates in one API call.
+     * Returns: { "USD" -> 1.35, "EUR" -> 1.47, "SGD" -> 1.0, ... }
+     */
+    public Map<String, Double> fetchAllRatesToSgd() {
+        Map<String, Double> fallback = new java.util.LinkedHashMap<>(Map.of(
+                "SGD", 1.0,   "USD", 1.35, "EUR", 1.47,
+                "GBP", 1.72,  "JPY", 0.0090, "AUD", 0.87,
+                "HKD", 0.173, "CNY", 0.187,  "MYR", 0.305
+        ));
         try {
             HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create("https://open.er-api.com/v6/latest/USD"))
+                    .uri(URI.create("https://open.er-api.com/v6/latest/SGD"))
                     .header("Accept", "application/json")
                     .timeout(Duration.ofSeconds(8))
                     .GET().build();
-
             HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
-            double rate = mapper.readTree(resp.body()).path("rates").path("SGD").asDouble(0);
-            if (rate > 0) {
-                log.info("FX: USD/SGD = {}", rate);
-                return rate;
+            JsonNode rates = mapper.readTree(resp.body()).path("rates");
+            Map<String, Double> result = new java.util.LinkedHashMap<>();
+            result.put("SGD", 1.0);
+            for (String ccy : List.of("USD","EUR","GBP","JPY","AUD","HKD","CNY","MYR")) {
+                double perSgd = rates.path(ccy).asDouble(0);
+                if (perSgd > 0) result.put(ccy, 1.0 / perSgd);
             }
+            log.info("FX rates: {}", result);
+            return result;
         } catch (Exception e) {
-            log.warn("FX rate fetch failed: {}", e.getMessage());
+            log.warn("FX rates fetch failed, using fallback: {}", e.getMessage());
+            return fallback;
         }
-        return 1.35;
     }
 
     public record StockQuote(double price, String currency) {}

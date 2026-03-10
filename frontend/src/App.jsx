@@ -6,7 +6,11 @@ import PortfolioManager from './components/PortfolioManager'
 import WealthSummary from './components/WealthSummary'
 import CsvGuide from './components/CsvGuide'
 import ScoreBarList from './components/ScoreBarList'
+import BankConnectModal from './components/BankConnectModal'
 import FinancialCharts from './components/FinancialCharts'
+import NetWorthChart from './components/NetWorthChart'
+import { getSampleHistory, recordSnapshot, getPortfolioHistory } from './utils/historyStore'
+import UserProfilePanel from './components/UserProfilePanel'
 import AllocationChart from './components/AllocationChart'
 import PortfolioTable from './components/PortfolioTable'
 import ScenarioImpact from './components/ScenarioImpact'
@@ -52,8 +56,21 @@ export default function App() {
   const [error,      setError]      = useState(null)
 
   // Modals
-  const [selectedAsset, setSelectedAsset] = useState(null)
-  const [showAddEntry,  setShowAddEntry]  = useState(false)
+  const [selectedAsset,    setSelectedAsset]    = useState(null)
+  const [showAddEntry,     setShowAddEntry]      = useState(false)
+  const [showBankConnect,  setShowBankConnect]   = useState(false)
+
+  // User profile (for personalized recommendations)
+  const [userProfile, setUserProfile] = useState({
+    age: 35,
+    riskAppetite: 'balanced',
+    primaryGoal: 'wealth_building',
+    monthlyIncome: 0,
+  })
+
+  // Net worth history
+  const [netWorthHistory,  setNetWorthHistory]  = useState([])
+  const [currentSampleName, setCurrentSampleName] = useState('balanced')
 
   // ---- Portfolio persistence ----
   const [portfolioName,    setPortfolioName]    = useState(null)
@@ -81,18 +98,19 @@ export default function App() {
       setAssets(p.assets)
       setLastSaved(p.savedAt)
       setSaveStatus('saved')
-      // skipAutoSave stays true — prevents immediate auto-save after restore
+      setCurrentSampleName(null) // saved portfolio — not a sample
     } else {
-      _loadSample('balanced') // internal version that doesn't reset skip flag here
+      setCurrentSampleName('balanced')
+      _loadSample('balanced')
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---- Analysis re-run whenever assets or scenario change ----
-  const runAnalysis = useCallback(async (a, scenario) => {
+  // ---- Analysis re-run whenever assets, scenario, or profile change ----
+  const runAnalysis = useCallback(async (a, scenario, profile) => {
     setLoading(true)
     setError(null)
     try {
-      const r = await analyze(a, scenario)
+      const r = await analyze(a, scenario, profile)
       setResult(r)
     } catch (e) {
       setError(e.response?.data?.error || e.message)
@@ -102,8 +120,21 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (assets) runAnalysis(assets, activeScenario)
-  }, [assets, scenarioActive, scenarioClass, scenarioPct, runAnalysis]) // eslint-disable-line
+    if (assets) runAnalysis(assets, activeScenario, userProfile)
+  }, [assets, scenarioActive, scenarioClass, scenarioPct, userProfile, runAnalysis]) // eslint-disable-line
+
+  // Update net worth history after each analysis (skip scenario mode)
+  useEffect(() => {
+    if (!result || scenarioActive) return
+    const nw  = result.netWorth        ?? 0
+    const inv = result.investableAssets ?? 0
+    if (currentSampleName) {
+      setNetWorthHistory(getSampleHistory(currentSampleName, nw, inv))
+    } else if (portfolioNameRef.current) {
+      recordSnapshot(portfolioNameRef.current, nw, inv)
+      setNetWorthHistory(getPortfolioHistory(portfolioNameRef.current))
+    }
+  }, [result, scenarioActive, currentSampleName]) // eslint-disable-line
 
   // ---- Auto-save: fires 3 s after any assets change, only if a name is set ----
   useEffect(() => {
@@ -199,6 +230,7 @@ export default function App() {
     skipAutoSave.current = true
     setPortfolioName(null)
     setSaveStatus('idle')
+    setCurrentSampleName(name === '(none)' ? null : name)
     await _loadSample(name)
   }
 
@@ -206,6 +238,7 @@ export default function App() {
   const handleUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
+    setCurrentSampleName(null)
     setLoading(true); setError(null)
     try {
       const data = await uploadCSV(file)
@@ -218,6 +251,83 @@ export default function App() {
 
   // ---- Manual entry ----
   const handleAddEntry = (entry) => setAssets(prev => [...(prev || []), entry])
+
+  // ---- Bank import (mock SGFinDex) ----
+  const handleBankImport = (newAssets) => setAssets(prev => [...(prev || []), ...newAssets])
+
+  // ---- Export CSV ----
+  const exportCSV = () => {
+    if (!assets?.length) return
+    const header = 'asset_name,asset_class,entry_type,value_sgd,liquidity_days,risk_tag,source,ticker,quantity,currency,original_value'
+    const rows = assets.map(a => [
+      a.assetName, a.assetClass, a.entryType ?? 'asset',
+      a.valueSgd.toFixed(2), a.liquidityDays, a.riskTag, a.source,
+      a.ticker ?? '', a.quantity ?? '',
+      a.currency ?? 'SGD', (a.originalValue ?? a.valueSgd).toFixed(2),
+    ].join(','))
+    const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url; a.download = `portfolio_export_${new Date().toISOString().split('T')[0]}.csv`; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // ---- Export PDF (print-friendly popup) ----
+  const exportPDF = () => {
+    if (!result) return
+    const fmtN = (v) => 'S$ ' + Number(v).toLocaleString('en-SG', { maximumFractionDigits: 0 })
+    const scoreRow = (label, score) => {
+      const color = score >= 70 ? '#2ecc71' : score >= 40 ? '#f39c12' : '#e74c3c'
+      return `<tr><td>${label}</td><td style="color:${color};font-weight:700">${score.toFixed(0)}/100</td></tr>`
+    }
+    const html = `<!DOCTYPE html><html><head><title>Wealth Wellness Report</title>
+    <style>
+      body{font-family:sans-serif;padding:32px;color:#111;max-width:860px;margin:0 auto}
+      h1{font-size:22px;margin-bottom:4px}
+      .sub{color:#555;font-size:13px;margin-bottom:24px}
+      .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+      .card{border:1px solid #ddd;border-radius:8px;padding:14px}
+      .card-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em}
+      .card-value{font-size:20px;font-weight:700;margin-top:4px}
+      table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:13px}
+      th{text-align:left;border-bottom:2px solid #ddd;padding:8px 4px;font-size:11px;text-transform:uppercase;color:#888}
+      td{padding:8px 4px;border-bottom:1px solid #f0f0f0}
+      h2{font-size:15px;margin:20px 0 8px}
+      @media print{body{padding:16px}}
+    </style></head><body>
+    <h1>Wealth Wellness Report</h1>
+    <div class="sub">Generated ${new Date().toLocaleDateString('en-SG', { dateStyle: 'long' })}${portfolioName ? ' · ' + portfolioName : ''}</div>
+    <div class="grid">
+      <div class="card"><div class="card-label">Net Worth</div><div class="card-value">${fmtN(result.netWorth)}</div></div>
+      <div class="card"><div class="card-label">Total Assets</div><div class="card-value">${fmtN(result.totalAssets)}</div></div>
+      <div class="card"><div class="card-label">Total Debts</div><div class="card-value" style="color:#e74c3c">${fmtN(result.totalDebts)}</div></div>
+      <div class="card"><div class="card-label">Cash on Hand</div><div class="card-value">${fmtN(result.cashOnHand)}</div></div>
+      <div class="card"><div class="card-label">Investable</div><div class="card-value">${fmtN(result.investableAssets)}</div></div>
+    </div>
+    <h2>Health Scores</h2>
+    <table><thead><tr><th>Metric</th><th>Score</th></tr></thead><tbody>
+      ${scoreRow('Diversification', result.diversificationScore)}
+      ${scoreRow('Liquidity',       result.liquidityScore)}
+      ${scoreRow('Resilience',      result.resilienceScore)}
+      ${scoreRow('Debt Health',     result.debtHealthScore ?? 100)}
+      ${scoreRow('Concentration',   result.concentrationScore ?? 100)}
+      ${scoreRow('Emergency Fund',  result.emergencyFundScore ?? 0)}
+    </tbody></table>
+    <h2>Asset Allocation</h2>
+    <table><thead><tr><th>Asset Class</th><th>Value (SGD)</th><th>Weight</th></tr></thead><tbody>
+      ${(result.allocation || []).map(a => `<tr><td>${a.assetClass}</td><td>${fmtN(a.valueSgd)}</td><td>${(a.weight*100).toFixed(1)}%</td></tr>`).join('')}
+    </tbody></table>
+    <h2>Holdings</h2>
+    <table><thead><tr><th>Name</th><th>Class</th><th>Value</th><th>Liquidity</th><th>Risk</th></tr></thead><tbody>
+      ${(assets || []).map(a => `<tr><td>${a.assetName}</td><td>${a.assetClass}</td><td>${fmtN(a.valueSgd)}</td><td>${a.liquidityDays}d</td><td>${a.riskTag}</td></tr>`).join('')}
+    </tbody></table>
+    ${result.recommendations?.length ? `<h2>Recommendations</h2><ul>${result.recommendations.map(r => `<li><strong>${r.title}</strong> — ${r.detail}</li>`).join('')}</ul>` : ''}
+    <script>window.onload=()=>window.print()</script>
+    </body></html>`
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+  }
 
   // ---- Template download ----
   const downloadTemplate = () => {
@@ -282,6 +392,20 @@ export default function App() {
           />
         </section>
 
+        {/* ---- User Profile ---- */}
+        <section>
+          <UserProfilePanel profile={userProfile} onChange={setUserProfile} />
+        </section>
+
+        {/* ---- Connect Accounts ---- */}
+        <section>
+          <h2>Open Finance</h2>
+          <button className="btn-connect-accounts" onClick={() => setShowBankConnect(true)}>
+            🔗 Connect Accounts
+          </button>
+          <p className="live-note" style={{ marginTop: 6 }}>Simulate SGFinDex bank / CPF data pull.</p>
+        </section>
+
         {/* ---- Import ---- */}
         <section>
           <h2>Import Portfolio</h2>
@@ -298,7 +422,7 @@ export default function App() {
           <CsvGuide />
 
           <label style={{ marginTop: 14 }}>Or load a sample</label>
-          <select defaultValue="balanced" onChange={(e) => handleSample(e.target.value)}>
+          <select value={currentSampleName || '(none)'} onChange={(e) => handleSample(e.target.value)}>
             <option value="(none)">(none)</option>
             <option value="balanced">Balanced</option>
             <option value="crypto_heavy">Crypto Heavy</option>
@@ -367,8 +491,18 @@ export default function App() {
 
       {/* ---- Main ---- */}
       <main className="main">
-        <h1 className="main-title">Dashboard</h1>
-        <p className="main-subtitle">Your complete financial health overview</p>
+        <div className="main-header-row">
+          <div>
+            <h1 className="main-title">Dashboard</h1>
+            <p className="main-subtitle">Your complete financial health overview</p>
+          </div>
+          {result && (
+            <div className="export-btns">
+              <button className="btn-reset" onClick={exportCSV}>↓ CSV</button>
+              <button className="btn-reset" onClick={exportPDF}>↓ PDF</button>
+            </div>
+          )}
+        </div>
 
         {error && <div className="alert danger mb-20">{error}</div>}
 
@@ -386,6 +520,11 @@ export default function App() {
         {result && !loading && (
           <>
             <WealthSummary result={result} fmtSgd={fmtSgd} scenarioActive={scenarioActive} />
+
+            <div className="card mb-20">
+              <h2>Net Worth History</h2>
+              <NetWorthChart history={netWorthHistory} />
+            </div>
 
             <div className="row mb-20">
               <div className="card">
@@ -451,6 +590,9 @@ export default function App() {
       <AssetModal asset={selectedAsset} onClose={() => setSelectedAsset(null)} />
       {showAddEntry && (
         <AddEntryModal onClose={() => setShowAddEntry(false)} onAdd={handleAddEntry} />
+      )}
+      {showBankConnect && (
+        <BankConnectModal onClose={() => setShowBankConnect(false)} onImport={handleBankImport} />
       )}
     </div>
   )

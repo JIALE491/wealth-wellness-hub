@@ -46,6 +46,11 @@ public class PortfolioController {
         return ResponseEntity.ok(ScenarioService.ASSET_CLASSES);
     }
 
+    @GetMapping("/fx-rates")
+    public ResponseEntity<Map<String, Double>> fxRates() {
+        return ResponseEntity.ok(priceService.fetchAllRatesToSgd());
+    }
+
     @GetMapping("/prices/history/{ticker}")
     public ResponseEntity<?> priceHistory(
             @PathVariable String ticker,
@@ -129,11 +134,21 @@ public class PortfolioController {
             if (result.getResilienceScore() < 50)      issues.add("fragile under stress scenarios");
             result.setHealthIssues(issues);
 
-            result.setAlerts(recommendationService.generateAlerts(assetsOnly));
-            result.setRecommendations(recommendationService.generateRecommendations(assetsOnly));
+            UserProfile profile = request.getUserProfile();
+            result.setAlerts(recommendationService.generateAlerts(assetsOnly, profile));
+            result.setRecommendations(recommendationService.generateRecommendations(assetsOnly, profile));
             result.setScenarioImpact(hasScenario
                     ? scenarioService.computeImpact(base, allAssets)
                     : List.of());
+
+            // Currency exposure: sum SGD value by source currency
+            Map<String, Double> currencyExposure = new java.util.LinkedHashMap<>();
+            for (Asset a : assetsOnly) {
+                String ccy = a.getCurrency() != null ? a.getCurrency() : "SGD";
+                currencyExposure.merge(ccy, a.getValueSgd(), Double::sum);
+            }
+            result.setCurrencyExposure(currencyExposure);
+            result.setFxRates(priceService.fetchAllRatesToSgd());
 
             result.setPricesUpdatedAt(Instant.now().toString());
             return ResponseEntity.ok(result);

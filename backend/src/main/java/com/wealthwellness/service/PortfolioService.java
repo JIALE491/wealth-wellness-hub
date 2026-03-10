@@ -56,8 +56,7 @@ public class PortfolioService {
                 a.setRiskTag(parts[colIndex.get("risk_tag")].trim());
                 a.setSource(parts[colIndex.get("source")].trim());
 
-                // Optional live-price columns
-                // Optional entry_type (asset or debt), default "asset"
+                // Optional entry_type (asset or debt)
                 if (colIndex.containsKey("entry_type") && colIndex.get("entry_type") < parts.length) {
                     String et = parts[colIndex.get("entry_type")].trim();
                     a.setEntryType(et.isEmpty() ? "asset" : et.toLowerCase());
@@ -65,6 +64,21 @@ public class PortfolioService {
                     a.setEntryType("asset");
                 }
 
+                // Optional currency + original_value (multi-currency support)
+                String ccy = "SGD";
+                if (colIndex.containsKey("currency") && colIndex.get("currency") < parts.length) {
+                    String raw = parts[colIndex.get("currency")].trim().toUpperCase();
+                    if (!raw.isEmpty()) ccy = raw;
+                }
+                a.setCurrency(ccy);
+
+                if (colIndex.containsKey("original_value") && colIndex.get("original_value") < parts.length) {
+                    String ov = parts[colIndex.get("original_value")].trim();
+                    if (!ov.isEmpty()) a.setOriginalValue(Double.parseDouble(ov));
+                }
+                if (a.getOriginalValue() == null) a.setOriginalValue(a.getValueSgd());
+
+                // Optional ticker + quantity
                 if (colIndex.containsKey("ticker") && colIndex.get("ticker") < parts.length) {
                     String t = parts[colIndex.get("ticker")].trim();
                     if (!t.isEmpty()) a.setTicker(t);
@@ -93,54 +107,69 @@ public class PortfolioService {
     }
 
     /**
-     * For each asset that has a ticker + quantity, fetch the live price
-     * and recompute value_sgd = quantity * livePrice.
-     * Assets without a ticker keep their manual value_sgd.
+     * Enrich assets with live prices (crypto/stocks) and apply FX conversion
+     * for non-SGD assets that have an originalValue set.
      */
     public List<Asset> enrichWithLivePrices(List<Asset> assets) {
         List<Asset> withTicker = assets.stream()
                 .filter(a -> a.getTicker() != null && a.getQuantity() != null)
                 .collect(Collectors.toList());
 
-        if (withTicker.isEmpty()) return assets;
+        // Fetch all FX rates once (used for both stock USD conversion and non-SGD assets)
+        Map<String, Double> fxRates = null;
 
-        // Separate crypto vs stock tickers
-        List<String> cryptoSymbols = withTicker.stream()
-                .filter(a -> priceService.isCryptoSymbol(a.getTicker()))
-                .map(Asset::getTicker)
-                .distinct()
-                .collect(Collectors.toList());
+        if (!withTicker.isEmpty()) {
+            List<String> cryptoSymbols = withTicker.stream()
+                    .filter(a -> priceService.isCryptoSymbol(a.getTicker()))
+                    .map(Asset::getTicker).distinct().collect(Collectors.toList());
 
-        List<String> stockTickers = withTicker.stream()
-                .filter(a -> !priceService.isCryptoSymbol(a.getTicker()))
-                .map(Asset::getTicker)
-                .distinct()
-                .collect(Collectors.toList());
+            List<String> stockTickers = withTicker.stream()
+                    .filter(a -> !priceService.isCryptoSymbol(a.getTicker()))
+                    .map(Asset::getTicker).distinct().collect(Collectors.toList());
 
-        // Fetch prices
-        Map<String, Double> cryptoPrices = priceService.fetchCryptoPricesSgd(cryptoSymbols);
-        Map<String, PriceService.StockQuote> stockQuotes = priceService.fetchStockQuotes(stockTickers);
-        double usdToSgd = stockQuotes.isEmpty() ? 1.35 : priceService.fetchUsdToSgd();
+            Map<String, Double> cryptoPrices = priceService.fetchCryptoPricesSgd(cryptoSymbols);
+            Map<String, PriceService.StockQuote> stockQuotes = priceService.fetchStockQuotes(stockTickers);
 
-        // Apply prices
-        for (Asset a : assets) {
-            if (a.getTicker() == null || a.getQuantity() == null) continue;
-            String sym = a.getTicker().toUpperCase();
-
-            if (cryptoPrices.containsKey(sym)) {
-                double priceSgd = cryptoPrices.get(sym);
-                a.setLivePrice(priceSgd);
-                a.setValueSgd(a.getQuantity() * priceSgd);
-                a.setPriceSource("live");
-
-            } else if (stockQuotes.containsKey(a.getTicker())) {
-                PriceService.StockQuote q = stockQuotes.get(a.getTicker());
-                double priceSgd = "SGD".equals(q.currency()) ? q.price() : q.price() * usdToSgd;
-                a.setLivePrice(priceSgd);
-                a.setValueSgd(a.getQuantity() * priceSgd);
-                a.setPriceSource("live");
+            if (!stockQuotes.isEmpty() || assets.stream().anyMatch(a -> !"SGD".equals(a.getCurrency()))) {
+                fxRates = priceService.fetchAllRatesToSgd();
             }
-            // else: stays "manual"
+            double usdToSgd = fxRates != null ? fxRates.getOrDefault("USD", 1.35) : 1.35;
+
+            for (Asset a : assets) {
+                if (a.getTicker() == null || a.getQuantity() == null) continue;
+                String sym = a.getTicker().toUpperCase();
+
+                if (cryptoPrices.containsKey(sym)) {
+                    double priceSgd = cryptoPrices.get(sym);
+                    a.setLivePrice(priceSgd);
+                    a.setValueSgd(a.getQuantity() * priceSgd);
+                    a.setPriceSource("live");
+                } else if (stockQuotes.containsKey(a.getTicker())) {
+                    PriceService.StockQuote q = stockQuotes.get(a.getTicker());
+                    double priceSgd = "SGD".equals(q.currency()) ? q.price() : q.price() * usdToSgd;
+                    a.setLivePrice(priceSgd);
+                    a.setValueSgd(a.getQuantity() * priceSgd);
+                    a.setPriceSource("live");
+                }
+            }
+        }
+
+        // Apply FX conversion for non-SGD manual assets
+        boolean hasForeignCcy = assets.stream().anyMatch(a ->
+                !"SGD".equalsIgnoreCase(a.getCurrency())
+                && a.getOriginalValue() != null
+                && !"live".equals(a.getPriceSource()));
+
+        if (hasForeignCcy) {
+            if (fxRates == null) fxRates = priceService.fetchAllRatesToSgd();
+            for (Asset a : assets) {
+                if (!"SGD".equalsIgnoreCase(a.getCurrency())
+                        && a.getOriginalValue() != null
+                        && !"live".equals(a.getPriceSource())) {
+                    double rate = fxRates.getOrDefault(a.getCurrency().toUpperCase(), 1.0);
+                    a.setValueSgd(a.getOriginalValue() * rate);
+                }
+            }
         }
 
         return assets;
