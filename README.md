@@ -378,10 +378,14 @@ From the project root, run:
 
 ```bash
 docker compose up --build
+```
+
 
 Then open:
-```
+
+```text
 http://127.0.0.1:3000
+```
 
 Demo flow
 
@@ -398,8 +402,9 @@ Demo flow
 6. Click Refresh Prices to fetch supported live prices
 
 Stop the app
-
+```
 docker compose down
+```
 
 ---
 
