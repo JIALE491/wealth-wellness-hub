@@ -369,6 +369,37 @@ Backend runs on:
 ```text
 http://localhost:8080
 ```
+## Run with Docker
+
+From the project root:
+
+```bash
+docker compose up --build
+
+Then open:
+
+http://127.0.0.1:3000
+
+To stop the app:
+
+docker compose down
+
+Also make sure these are committed:
+- `docker-compose.yml`
+- `backend/Dockerfile`
+- `frontend/Dockerfile`
+- `frontend/nginx.conf`
+- `backend/.dockerignore`
+- `frontend/.dockerignore`
+
+And make sure your `.gitignore` includes:
+
+```gitignore
+.venv/
+node_modules/
+dist/
+backend/target/
+
 
 ### Frontend
 
