@@ -369,6 +369,21 @@ Backend runs on:
 ```text
 http://localhost:8080
 ```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend runs on:
+
+```text
+http://localhost:5173
+```
+
 ## Run with Docker
 
 From the project root:
@@ -399,21 +414,6 @@ And make sure your `.gitignore` includes:
 node_modules/
 dist/
 backend/target/
-
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend runs on:
-
-```text
-http://localhost:5173
-```
 
 ---
 
