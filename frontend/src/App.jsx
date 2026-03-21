@@ -667,7 +667,7 @@ export default function App() {
                   <Recommendations recs={result.recommendations} />
                 </div>
               </div>
-              <div className="card">
+              <div className="card card--news">
                 <h2>Market News</h2>
                 <MarketNews />
               </div>
