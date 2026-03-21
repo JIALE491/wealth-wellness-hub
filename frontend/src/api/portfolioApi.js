@@ -44,3 +44,25 @@ export const getFxRates = async () => {
   const res = await axios.get(`${BASE}/fx-rates`)
   return res.data // { USD: 1.35, EUR: 1.47, ... }
 }
+
+// messages: [{ role: 'user'|'assistant', content: string }]
+export const sendChat = async (messages, assets, userProfile, analysisResult) => {
+  const res = await axios.post(`${BASE}/chat`, { messages, assets, userProfile, analysisResult })
+  return res.data.reply
+}
+
+// ---- User portfolio persistence (requires auth) ----
+export const listPortfolios = async () => {
+  const res = await axios.get('/api/user/portfolios')
+  return res.data // [{ name, savedAt, assets }]
+}
+
+export const savePortfolio = async (name, assets) => {
+  const res = await axios.post('/api/user/portfolios', { name, assets })
+  return res.data
+}
+
+export const deletePortfolio = async (name) => {
+  const res = await axios.delete(`/api/user/portfolios/${encodeURIComponent(name)}`)
+  return res.data
+}

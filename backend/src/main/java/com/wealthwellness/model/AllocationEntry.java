@@ -5,6 +5,8 @@ public class AllocationEntry {
     private double valueSgd;
     private double weight;
 
+    public AllocationEntry() {}
+
     public AllocationEntry(String assetClass, double valueSgd, double weight) {
         this.assetClass = assetClass;
         this.valueSgd = valueSgd;

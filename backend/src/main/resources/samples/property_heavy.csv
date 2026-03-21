@@ -1,9 +1,9 @@
-asset_name,asset_class,entry_type,value_sgd,liquidity_days,risk_tag,source,ticker,quantity
-UOB Savings,Cash,asset,4000,0,Low,Bank,,
-STI ETF,Equity,asset,6000,2,Med,Broker,ES3.SI,600
-Bond Fund,Bonds,asset,4000,7,Low,Broker,AGG,40
-HDB Flat (Estimated),Property,asset,420000,180,Med,Manual,,
-Car (Estimated),Private,asset,25000,30,Med,Manual,,
-Bitcoin,Crypto,asset,3000,1,High,Crypto,BTC,0.04
-HDB Mortgage,Mortgage,debt,280000,180,Low,Bank,,
-Car Loan,CarLoan,debt,12000,30,Low,Bank,,
+asset_name,asset_class,entry_type,value_sgd,liquidity_days,risk_tag,source,ticker,quantity,platform
+UOB Savings,Cash,asset,4000,0,Low,Bank,,,UOB Bank
+STI ETF,Equity,asset,6000,2,Med,Broker,ES3.SI,600,Tiger Broker
+Bond Fund,Bonds,asset,4000,7,Low,Broker,AGG,40,Tiger Broker
+HDB Flat (Estimated),Property,asset,420000,180,Med,Manual,,,
+Car (Estimated),Private,asset,25000,30,Med,Manual,,,
+Bitcoin,Crypto,asset,3000,1,High,Crypto,BTC,0.04,Moomoo
+HDB Mortgage,Mortgage,debt,280000,180,Low,Bank,,,UOB Bank
+Car Loan,CarLoan,debt,12000,30,Low,Bank,,,UOB Bank

@@ -21,10 +21,123 @@ body {
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.10); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.18); }
 
+/* ---- Ventura Topbar ---- */
+.ventura-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ventura-topbar {
+  width: 100%;
+  padding: 14px 24px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(10, 8, 18, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(196, 69, 105, 0.2);
+  box-shadow: 0 1px 40px rgba(196, 69, 105, 0.07);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.ventura-topbar-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.ventura-sidebar-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.ventura-sidebar-toggle:hover {
+  background: rgba(196, 69, 105, 0.12);
+}
+.ventura-sidebar-toggle span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #8b92a5;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+.ventura-sidebar-toggle:hover span {
+  background: #c44569;
+}
+
+.ventura-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ventura-user-name {
+  font-size: 13px;
+  color: #8b92a5;
+  letter-spacing: 0.02em;
+}
+
+.ventura-logout {
+  font-size: 12px;
+  font-weight: 500;
+  color: #8b92a5;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+.ventura-logout:hover {
+  background: rgba(196, 69, 105, 0.15);
+  border-color: rgba(196, 69, 105, 0.4);
+  color: #e06080;
+}
+
+.ventura-name {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  background: linear-gradient(135deg, #e8637e 0%, #c44569 40%, #9b2f50 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  filter: drop-shadow(0 0 18px rgba(196, 69, 105, 0.4));
+}
+
+.ventura-motto {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: #8b92a5;
+  text-transform: uppercase;
+}
+
 /* ---- Layout ---- */
 .app {
   display: flex;
-  min-height: 100vh;
+  flex: 1;
 }
 
 .sidebar {
@@ -38,6 +151,20 @@ body {
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+/* ---- Collapsible sidebar ---- */
+.app--sidebar-collapsed .sidebar {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border-right: none;
+}
+
+.sidebar {
+  transition: width 0.28s ease, min-width 0.28s ease, padding 0.28s ease;
+  overflow: hidden;
 }
 
 .sidebar-brand h1 {
@@ -184,6 +311,29 @@ body {
   display: flex;
   gap: 8px;
   padding-top: 6px;
+}
+
+.export-btns .btn-reset {
+  width: auto;
+  margin-top: 0;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 20px;
+  border: 1px solid rgba(196, 69, 105, 0.4);
+  background: rgba(196, 69, 105, 0.08);
+  color: #c44569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.export-btns .btn-reset:hover {
+  background: rgba(196, 69, 105, 0.18);
+  border-color: rgba(196, 69, 105, 0.7);
+  color: #e06080;
 }
 
 /* ---- Connect Accounts button ---- */
@@ -957,37 +1107,42 @@ body {
 /* ---- Table ---- */
 .table-wrap {
   overflow-y: auto;
+  overflow-x: auto;
   max-height: 230px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
+  min-width: 560px;
 }
 
 th {
   text-align: left;
-  padding: 8px 10px;
+  padding: 6px 10px;
   background: #111318;
   border-bottom: 2px solid #23262f;
   font-weight: 600;
   color: #8b92a5;
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   position: sticky;
   top: 0;
+  white-space: nowrap;
 }
 
 td {
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-bottom: 1px solid #23262f;
   color: #c8cad4;
+  white-space: nowrap;
 }
 
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: #1e2130; }
+
 
 /* ---- Risk tags ---- */
 .tag {

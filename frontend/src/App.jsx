@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { uploadCSV, loadSample, getAssetClasses, analyze, refreshPrices } from './api/portfolioApi'
+import { uploadCSV, loadSample, getAssetClasses, analyze, refreshPrices,
+         listPortfolios, savePortfolio, deletePortfolio } from './api/portfolioApi'
+import { useAuth } from './context/AuthContext'
+import AuthModal from './components/AuthModal'
 import AssetModal from './components/AssetModal'
 import AddEntryModal from './components/AddEntryModal'
 import PortfolioManager from './components/PortfolioManager'
@@ -17,6 +20,8 @@ import ScenarioImpact from './components/ScenarioImpact'
 import HealthSummary from './components/HealthSummary'
 import Alerts from './components/Alerts'
 import Recommendations from './components/Recommendations'
+import PlatformBreakdown from './components/PlatformBreakdown'
+import ChatBot from './components/ChatBot'
 
 // ---- localStorage helpers ----
 const STORAGE_KEY = 'wwh_portfolios'
@@ -37,6 +42,8 @@ function fmtTime(iso) {
 
 // ---- App ----
 export default function App() {
+  const { user, loading: authLoading, logout } = useAuth()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [assets, setAssets]           = useState(null)
   const [assetClasses, setAssetClasses] = useState([])
 
@@ -154,13 +161,25 @@ export default function App() {
     return () => clearTimeout(autoSaveTimer.current)
   }, [assets]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---- Core save (used by both auto-save and manual save) ----
+  // ---- Load portfolios from backend on login ----
+  useEffect(() => {
+    if (!user) return
+    listPortfolios().then(portfolios => {
+      const map = {}
+      portfolios.forEach(p => { map[p.name] = { assets: p.assets, savedAt: p.savedAt } })
+      setSavedPortfolios(map)
+    }).catch(console.error)
+  }, [user])
+
+  // ---- Core save (backend when logged in, localStorage fallback) ----
   const doSave = useCallback((name) => {
     const current = assetsRef.current
     if (!name || !current) return
 
     setSaveStatus('saving')
     const now = new Date().toISOString()
+
+    savePortfolio(name, current).catch(console.error)
 
     setSavedPortfolios(prev => {
       const updated = { ...prev, [name]: { assets: current, savedAt: now } }
@@ -199,6 +218,7 @@ export default function App() {
 
   // ---- Delete a saved portfolio ----
   const handleDeletePortfolio = useCallback((name) => {
+    deletePortfolio(name).catch(console.error)
     setSavedPortfolios(prev => {
       const { [name]: _, ...rest } = prev
       const store = loadStore()
@@ -258,12 +278,13 @@ export default function App() {
   // ---- Export CSV ----
   const exportCSV = () => {
     if (!assets?.length) return
-    const header = 'asset_name,asset_class,entry_type,value_sgd,liquidity_days,risk_tag,source,ticker,quantity,currency,original_value'
+    const header = 'asset_name,asset_class,entry_type,value_sgd,liquidity_days,risk_tag,source,ticker,quantity,currency,original_value,platform'
     const rows = assets.map(a => [
       a.assetName, a.assetClass, a.entryType ?? 'asset',
       a.valueSgd.toFixed(2), a.liquidityDays, a.riskTag, a.source,
       a.ticker ?? '', a.quantity ?? '',
       a.currency ?? 'SGD', (a.originalValue ?? a.valueSgd).toFixed(2),
+      a.platform ?? '',
     ].join(','))
     const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' })
     const url  = URL.createObjectURL(blob)
@@ -332,15 +353,33 @@ export default function App() {
   // ---- Template download ----
   const downloadTemplate = () => {
     const csv = [
-      'asset_name,asset_class,entry_type,value_sgd,liquidity_days,risk_tag,source,ticker,quantity',
-      'OCBC Savings,Cash,asset,15000,0,Low,Bank,,',
-      'S&P 500 ETF,Equity,asset,20000,2,Med,Broker,SPY,14',
-      'Bitcoin,Crypto,asset,5000,1,High,Crypto,BTC,0.05',
-      'Gov Bond Fund,Bonds,asset,8000,7,Low,Broker,AGG,80',
-      'HDB Flat,Property,asset,400000,180,Med,Manual,,',
-      'CPF Ordinary Account,CPF,asset,30000,180,Low,CPF,,',
-      'HDB Mortgage,Mortgage,debt,250000,180,Low,Bank,,',
-      'Car Loan,CarLoan,debt,15000,30,Low,Bank,,',
+      // Header
+      'asset_name,asset_class,entry_type,value_sgd,liquidity_days,risk_tag,source,ticker,quantity,platform',
+      // Inline reference guide (lines starting with # are ignored by the parser)
+      '# --- FIELD REFERENCE (these lines are ignored when uploading) ---',
+      '# asset_name      : Any label e.g. "OCBC Savings", "Bitcoin", "HDB Flat"',
+      '# asset_class     : Cash | Equity | Crypto | Bonds | Property | CPF | Commodities | PrivateEquity | Collectibles | Mortgage | CarLoan | OtherDebt',
+      '# entry_type      : asset  OR  debt',
+      '# value_sgd       : Current value in SGD (number, no commas)',
+      '# liquidity_days  : Days to convert to cash. e.g. 0=instant, 2=stocks, 180=property',
+      '# risk_tag        : Low | Med | High',
+      '# source          : Where held — e.g. Bank | Broker | Crypto | CPF | Manual',
+      '# ticker          : (optional) Exchange ticker for live price + chart. e.g. AAPL, BTC, XAU, SPY, D05.SI, LSE:HSBA',
+      '# quantity        : (optional) Number of units — needed for live price calculation',
+      '# platform        : (optional) Brokerage/platform name e.g. Tiger Broker, Moomoo, Bybit, OCBC',
+      '# --- EXAMPLES (delete before uploading, or leave — they will be ignored) ---',
+      '# OCBC Savings,Cash,asset,15000,0,Low,Bank,,,OCBC Bank',
+      '# Apple Inc,Equity,asset,8500,2,Med,Broker,AAPL,20,Tiger Broker',
+      '# Bitcoin,Crypto,asset,5000,1,High,Crypto,BTC,0.05,Bybit',
+      '# Gold,Commodities,asset,3200,1,Med,Broker,XAU,1.5,Tiger Broker',
+      '# S&P 500 ETF,Equity,asset,20000,2,Med,Broker,SPY,14,Tiger Broker',
+      '# Gov Bond Fund,Bonds,asset,8000,7,Low,Broker,AGG,80,Tiger Broker',
+      '# HDB Flat,Property,asset,400000,180,Med,Manual,,,',
+      '# CPF Ordinary Account,CPF,asset,30000,180,Low,CPF,,,CPF Board',
+      '# HDB Mortgage,Mortgage,debt,250000,180,Low,Bank,,,OCBC Bank',
+      '# --- YOUR PORTFOLIO BELOW ---',
+      // 15 blank data rows
+      ...Array(15).fill(',,,,,,,,,'),
     ].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url  = URL.createObjectURL(blob)
@@ -369,12 +408,33 @@ export default function App() {
     ? `${scenarioClass} ${scenarioPct > 0 ? '+' : ''}${scenarioPct}%`
     : null
 
+  if (authLoading) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'#8b92a5', fontFamily:"'Cinzel',serif", letterSpacing:'0.15em' }}>
+      VENTURA
+    </div>
+  )
+
+  if (!user) return <AuthModal />
+
   return (
-    <div className="app">
+    <div className="ventura-wrapper">
+    <header className="ventura-topbar">
+      <button className="ventura-sidebar-toggle" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle sidebar">
+        <span /><span /><span />
+      </button>
+      <div className="ventura-topbar-center">
+        <h1 className="ventura-name">VENTURA</h1>
+        <p className="ventura-motto">Your wealth, engineered for tomorrow.</p>
+      </div>
+      <div className="ventura-user">
+        <span className="ventura-user-name">{user.name || user.email}</span>
+        <button className="ventura-logout" onClick={logout}>Sign out</button>
+      </div>
+    </header>
+    <div className={`app${sidebarOpen ? '' : ' app--sidebar-collapsed'}`}>
       {/* ---- Sidebar ---- */}
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <h1>Wealth Wellness Hub</h1>
           <p className="caption">Demo / Education only — not financial advice.</p>
         </div>
 
@@ -413,8 +473,8 @@ export default function App() {
           <input type="file" accept=".csv" onChange={handleUpload} />
 
           <div className="import-actions">
-            <button className="btn-reset" onClick={downloadTemplate}>
-              <span className="dl-icon">↓</span> Template
+            <button className="btn-apply" onClick={downloadTemplate}>
+              Template CSV
             </button>
             <button className="btn-apply" onClick={() => setShowAddEntry(true)}>+ Add Entry</button>
           </div>
@@ -498,8 +558,8 @@ export default function App() {
           </div>
           {result && (
             <div className="export-btns">
-              <button className="btn-reset" onClick={exportCSV}>↓ CSV</button>
-              <button className="btn-reset" onClick={exportPDF}>↓ PDF</button>
+              <button className="btn-reset" onClick={exportCSV}>⬇ Export CSV</button>
+              <button className="btn-reset" onClick={exportPDF}>⬇ Export PDF</button>
             </div>
           )}
         </div>
@@ -571,6 +631,8 @@ export default function App() {
               </div>
             </div>
 
+            <PlatformBreakdown breakdown={result.platformBreakdown} totalAssets={result.totalAssets} fmtSgd={fmtSgd} />
+
             <HealthSummary issues={result.healthIssues} />
 
             <div className="row">
@@ -587,6 +649,8 @@ export default function App() {
         )}
       </main>
 
+      <ChatBot assets={assets} userProfile={userProfile} analysisResult={result} />
+
       <AssetModal asset={selectedAsset} onClose={() => setSelectedAsset(null)} />
       {showAddEntry && (
         <AddEntryModal onClose={() => setShowAddEntry(false)} onAdd={handleAddEntry} />
@@ -594,6 +658,7 @@ export default function App() {
       {showBankConnect && (
         <BankConnectModal onClose={() => setShowBankConnect(false)} onImport={handleBankImport} />
       )}
+    </div>
     </div>
   )
 }

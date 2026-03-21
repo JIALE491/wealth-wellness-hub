@@ -26,8 +26,9 @@ public class AnalysisResult {
     private double debtHealthScore;
     private double concentrationScore;
     private double emergencyFundScore;
-    private Map<String, Double> currencyExposure; // { "USD" -> 15000, "SGD" -> 30000 } in SGD
-    private Map<String, Double> fxRates;           // { "USD" -> 1.35, "EUR" -> 1.47 }
+    private Map<String, Double> currencyExposure;  // { "USD" -> 15000, "SGD" -> 30000 } in SGD
+    private Map<String, Double> fxRates;            // { "USD" -> 1.35, "EUR" -> 1.47 }
+    private Map<String, Double> platformBreakdown;  // { "Tiger Broker" -> 25000, "Moomoo" -> 10000 } in SGD
 
     public double getNetWorth() { return netWorth; }
     public void setNetWorth(double netWorth) { this.netWorth = netWorth; }
@@ -100,4 +101,7 @@ public class AnalysisResult {
 
     public Map<String, Double> getFxRates() { return fxRates; }
     public void setFxRates(Map<String, Double> fxRates) { this.fxRates = fxRates; }
+
+    public Map<String, Double> getPlatformBreakdown() { return platformBreakdown; }
+    public void setPlatformBreakdown(Map<String, Double> platformBreakdown) { this.platformBreakdown = platformBreakdown; }
 }

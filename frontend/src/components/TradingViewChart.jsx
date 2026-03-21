@@ -19,6 +19,10 @@ const EXPLICIT = {
   LTC:   'COINBASE:LTCUSD',
 
   // Commodities — spot & popular ETFs
+  XAU:    'TVC:GOLD',
+  XAG:    'TVC:SILVER',
+  XPT:    'TVC:PLATINUM',
+  XPD:    'TVC:PALLADIUM',
   GOLD:   'TVC:GOLD',
   SILVER: 'TVC:SILVER',
   OIL:    'TVC:USOIL',
@@ -71,19 +75,27 @@ function resolveSymbol(ticker, assetClass) {
   // Commodities class without explicit mapping → try TVC spot
   if (assetClass === 'Commodities') return `TVC:${t}`
 
-  // Everything else: let TradingView auto-resolve by symbol name
+  // Bonds ETF common suffixes
+  if (assetClass === 'Bonds') return `NASDAQ:${t}`
+
+  // US-style tickers (no dots, no colons) → default to NASDAQ which covers NYSE too
+  if (!t.includes('.') && !t.includes(':')) return `NASDAQ:${t}`
+
   return t
 }
 
 // ---- No-ticker placeholder messages per asset class ----
 const NO_TICKER_HINTS = {
   Property:     'Add a REIT ticker (e.g. VNQ, CLAR.SI) to see a chart.',
-  Commodities:  'Add GLD, SLV, or PDBC as ticker to see a chart.',
+  Commodities:  'Add XAU, XAG, GLD or PDBC as ticker to see a chart.',
   CPF:          'CPF has no market ticker — value is updated manually.',
   PrivateEquity:'Private equity has no exchange listing or live chart.',
   Collectibles: 'Collectibles have no exchange listing or live chart.',
   Private:      'Add a ticker if this asset trades on an exchange.',
 }
+
+// Generic hint shown in the chart bar
+const GENERIC_TICKER_HINT = 'Use any ticker (e.g. AAPL, BTC, XAU) or EXCHANGE:SYMBOL format (e.g. LSE:HSBA, SGX:D05).'
 
 // ---- Component ----
 export default function TradingViewChart({ ticker, assetClass }) {
@@ -147,6 +159,9 @@ export default function TradingViewChart({ ticker, assetClass }) {
     <div className="tv-chart-wrapper">
       <div className="tv-chart-bar">
         <span className="tv-symbol-tag">{tvSymbol}</span>
+        <span style={{ fontSize: 11, color: '#555b6e' }}>
+          {GENERIC_TICKER_HINT}
+        </span>
         <a
           className="tv-attribution"
           href={`https://www.tradingview.com/symbols/${tvSymbol}/`}

@@ -4,7 +4,7 @@ function riskClass(tag) {
   return 'tag tag-low'
 }
 
-function AssetRow({ a, i, fmtSgd, onSelectAsset, isDebt }) {
+function AssetRow({ a, i, fmtSgd, onSelectAsset, isDebt, showPlatform }) {
   return (
     <tr
       key={i}
@@ -24,8 +24,13 @@ function AssetRow({ a, i, fmtSgd, onSelectAsset, isDebt }) {
           ? fmtSgd(a.livePrice)
           : <span style={{ color: '#555b6e' }}>—</span>}
       </td>
-      <td>{a.liquidityDays}d</td>
       <td><span className={riskClass(a.riskTag)}>{a.riskTag}</span></td>
+      <td>{a.liquidityDays}d</td>
+      {showPlatform && (
+        <td style={{ color: '#8b92a5', fontSize: 12 }}>
+          {a.platform || <span style={{ color: '#3a3f52' }}>—</span>}
+        </td>
+      )}
     </tr>
   )
 }
@@ -33,6 +38,8 @@ function AssetRow({ a, i, fmtSgd, onSelectAsset, isDebt }) {
 export default function PortfolioTable({ assets, fmtSgd, onSelectAsset }) {
   const assetRows = assets.filter(a => (a.entryType || 'asset') !== 'debt')
   const debtRows  = assets.filter(a => (a.entryType || 'asset') === 'debt')
+  const showPlatform = assets.some(a => a.platform)
+  const colSpan = showPlatform ? 7 : 6
 
   return (
     <div className="table-wrap">
@@ -43,22 +50,23 @@ export default function PortfolioTable({ assets, fmtSgd, onSelectAsset }) {
             <th>Class</th>
             <th>Value (SGD)</th>
             <th>Price/Unit</th>
-            <th>Liquidity</th>
             <th>Risk</th>
+            <th>Liquidity</th>
+            {showPlatform && <th>Platform</th>}
           </tr>
         </thead>
         <tbody>
           {assetRows.map((a, i) => (
-            <AssetRow key={i} a={a} i={i} fmtSgd={fmtSgd} onSelectAsset={onSelectAsset} isDebt={false} />
+            <AssetRow key={i} a={a} i={i} fmtSgd={fmtSgd} onSelectAsset={onSelectAsset} isDebt={false} showPlatform={showPlatform} />
           ))}
 
           {debtRows.length > 0 && (
             <>
               <tr className="table-section-header">
-                <td colSpan={6}>Liabilities</td>
+                <td colSpan={colSpan}>Liabilities</td>
               </tr>
               {debtRows.map((a, i) => (
-                <AssetRow key={`d${i}`} a={a} i={i} fmtSgd={fmtSgd} onSelectAsset={onSelectAsset} isDebt={true} />
+                <AssetRow key={`d${i}`} a={a} i={i} fmtSgd={fmtSgd} onSelectAsset={onSelectAsset} isDebt={true} showPlatform={showPlatform} />
               ))}
             </>
           )}

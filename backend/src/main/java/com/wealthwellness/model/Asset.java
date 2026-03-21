@@ -14,6 +14,7 @@ public class Asset {
     private String entryType;     // "asset" or "debt", defaults to "asset"
     private String currency;      // ISO code, e.g. "SGD", "USD", "EUR"
     private Double originalValue; // value in original currency before FX conversion
+    private String platform;      // brokerage / platform, e.g. "Tiger Broker", "Moomoo"
 
     public String getAssetName() { return assetName; }
     public void setAssetName(String assetName) { this.assetName = assetName; }
@@ -53,4 +54,7 @@ public class Asset {
 
     public Double getOriginalValue() { return originalValue; }
     public void setOriginalValue(Double originalValue) { this.originalValue = originalValue; }
+
+    public String getPlatform() { return platform; }
+    public void setPlatform(String platform) { this.platform = platform; }
 }

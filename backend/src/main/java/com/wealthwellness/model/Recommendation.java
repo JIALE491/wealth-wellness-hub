@@ -7,6 +7,8 @@ public class Recommendation {
     private String       why;
     private List<String> steps;   // concrete, actionable next steps
 
+    public Recommendation() {}
+
     public Recommendation(String action, String why, List<String> steps) {
         this.action = action;
         this.why    = why;

@@ -45,7 +45,7 @@ public class PortfolioService {
         String line;
         int row = 2;
         while ((line = reader.readLine()) != null) {
-            if (line.trim().isEmpty()) continue;
+            if (line.trim().isEmpty() || line.trim().startsWith("#")) continue;
             String[] parts = line.split(",", -1);
             try {
                 Asset a = new Asset();
@@ -77,6 +77,12 @@ public class PortfolioService {
                     if (!ov.isEmpty()) a.setOriginalValue(Double.parseDouble(ov));
                 }
                 if (a.getOriginalValue() == null) a.setOriginalValue(a.getValueSgd());
+
+                // Optional platform
+                if (colIndex.containsKey("platform") && colIndex.get("platform") < parts.length) {
+                    String p = parts[colIndex.get("platform")].trim();
+                    if (!p.isEmpty()) a.setPlatform(p);
+                }
 
                 // Optional ticker + quantity
                 if (colIndex.containsKey("ticker") && colIndex.get("ticker") < parts.length) {

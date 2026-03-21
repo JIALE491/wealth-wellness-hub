@@ -57,7 +57,7 @@ const EMPTY = {
   assetName: '', assetClass: 'Cash', entryType: 'asset',
   originalValue: '', currency: 'SGD',
   liquidityDays: 0, riskTag: 'Low',
-  source: '', ticker: '', quantity: '',
+  source: '', ticker: '', quantity: '', platform: '',
 }
 
 export default function AddEntryModal({ onClose, onAdd }) {
@@ -111,6 +111,7 @@ export default function AddEntryModal({ onClose, onAdd }) {
       source:        form.source.trim(),
       ticker:        form.ticker.trim() || null,
       quantity:      form.quantity !== '' ? parseFloat(form.quantity) : null,
+      platform:      form.platform.trim() || null,
       priceSource:   'manual',
       livePrice:     null,
     })
@@ -217,6 +218,17 @@ export default function AddEntryModal({ onClose, onAdd }) {
                 <option value="High">High</option>
               </select>
             </div>
+          </div>
+
+          {/* Platform */}
+          <div className="form-field form-field--full">
+            <label className="form-label">Platform <span className="form-opt">(optional)</span></label>
+            <input
+              className="form-input"
+              placeholder="e.g. Tiger Broker, Moomoo, Webull, OCBC Bank, Coinbase"
+              value={form.platform}
+              onChange={e => set('platform', e.target.value)}
+            />
           </div>
 
           {/* Ticker + Quantity */}

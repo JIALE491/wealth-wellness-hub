@@ -150,6 +150,15 @@ public class PortfolioController {
             result.setCurrencyExposure(currencyExposure);
             result.setFxRates(priceService.fetchAllRatesToSgd());
 
+            // Platform breakdown: sum SGD value by platform (assets only, skip nulls)
+            Map<String, Double> platformBreakdown = new java.util.LinkedHashMap<>();
+            for (Asset a : assetsOnly) {
+                if (a.getPlatform() != null && !a.getPlatform().isBlank()) {
+                    platformBreakdown.merge(a.getPlatform(), a.getValueSgd(), Double::sum);
+                }
+            }
+            result.setPlatformBreakdown(platformBreakdown);
+
             result.setPricesUpdatedAt(Instant.now().toString());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
