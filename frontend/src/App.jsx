@@ -48,14 +48,15 @@ export default function App() {
   const [assets, setAssets]           = useState(null)
   const [assetClasses, setAssetClasses] = useState([])
 
-  // Scenario
+  // Scenario — live slider state (display only, does NOT trigger analysis)
   const [scenarioClass,  setScenarioClass]  = useState('Crypto')
-  const [scenarioPct,    setScenarioPct]    = useState(-30)
+  const [scenarioPct,    setScenarioPct]    = useState(0)
   const [scenarioActive, setScenarioActive] = useState(false)
 
-  const activeScenario = scenarioActive
-    ? { assetClass: scenarioClass, changePercent: scenarioPct }
-    : null
+  // Applied scenario — only set when Apply is clicked, triggers analysis
+  const [appliedScenario, setAppliedScenario] = useState(null)
+
+  const activeScenario = appliedScenario
 
   // Analysis
   const [result,     setResult]     = useState(null)
@@ -129,7 +130,7 @@ export default function App() {
 
   useEffect(() => {
     if (assets) runAnalysis(assets, activeScenario, userProfile)
-  }, [assets, scenarioActive, scenarioClass, scenarioPct, userProfile, runAnalysis]) // eslint-disable-line
+  }, [assets, appliedScenario, userProfile, runAnalysis]) // eslint-disable-line
 
   // Update net worth history after each analysis (skip scenario mode)
   useEffect(() => {
@@ -422,9 +423,109 @@ export default function App() {
   }
 
   const liveCount    = result?.assets?.filter(a => a.priceSource === 'live').length ?? 0
+
+  // ---- Scenario insight generator ----
+  const getScenarioInsight = (cls, pct, result) => {
+    if (pct === 0 || !result) return null
+    const direction = pct < 0 ? 'drop' : 'surge'
+    const abs = Math.abs(pct)
+    const allocation = result.allocation?.find(a => a.assetClass === cls)
+    const weight = allocation ? (allocation.weight * 100).toFixed(1) : null
+    const weightNote = weight ? `${cls} makes up ${weight}% of your portfolio.` : ''
+
+    const severity = abs <= 10 ? 'mild' : abs <= 25 ? 'moderate' : abs <= 50 ? 'severe' : 'catastrophic'
+
+    const events = {
+      Crypto: {
+        drop: {
+          mild:         'Minor crypto pullbacks are common — this level of correction happens several times a year.',
+          moderate:     `A ${abs}% crypto decline mirrors corrections seen in mid-2021 and late-2022. ${weightNote} Monitor stablecoin exposure.`,
+          severe:       `A ${abs}% crypto crash is comparable to the 2022 Terra/Luna collapse. ${weightNote} Liquidity risk rises sharply at this level.`,
+          catastrophic: `A ${abs}% wipeout mirrors the 2018 crypto winter. ${weightNote} At this severity, recovery can take 2–4 years.`,
+        },
+        surge: {
+          mild:         'A small crypto uptick — minimal portfolio impact unless concentration is high.',
+          moderate:     `A ${abs}% crypto rally can significantly boost net worth if allocation is meaningful. ${weightNote}`,
+          severe:       `A ${abs}% crypto surge mirrors the 2020–2021 bull run. ${weightNote} Consider rebalancing to lock in gains.`,
+          catastrophic: `A ${abs}% crypto explosion is rare but not unprecedented. ${weightNote} Concentration risk rises — consider partial profit-taking.`,
+        },
+      },
+      Equity: {
+        drop: {
+          mild:         'A minor equity dip — within normal daily market volatility. No action typically needed.',
+          moderate:     `A ${abs}% equity drawdown is comparable to a standard market correction. ${weightNote} Diversification buffers the blow.`,
+          severe:       `A ${abs}% equity fall mirrors the COVID-19 crash of March 2020 or the 2008 GFC. ${weightNote} Resilience score will fall sharply.`,
+          catastrophic: `A ${abs}% equity collapse reflects a systemic financial crisis. ${weightNote} Cash and bond positions become critical lifelines.`,
+        },
+        surge: {
+          mild:         'A modest equity gain — markets trend upward over time, this is normal.',
+          moderate:     `A ${abs}% equity rally reflects a strong bull market. ${weightNote} Review allocation to avoid over-concentration.`,
+          severe:       `A ${abs}% equity surge mirrors post-COVID recovery gains. ${weightNote} Rebalancing may be warranted.`,
+          catastrophic: `A ${abs}% equity explosion is extremely rare. ${weightNote} Locking in gains and rebalancing is strongly advisable.`,
+        },
+      },
+      Bonds: {
+        drop: {
+          mild:         'A minor bond dip — typical during periods of mild rate adjustments.',
+          moderate:     `A ${abs}% bond decline reflects a significant rate hike cycle. ${weightNote} Your defensive buffer is weakening.`,
+          severe:       `A ${abs}% bond fall mirrors the 2022 rate shock — the worst bond year in decades. ${weightNote} Portfolio resilience drops considerably.`,
+          catastrophic: `A ${abs}% bond collapse is historically unprecedented. ${weightNote} This would signal a severe sovereign or systemic crisis.`,
+        },
+        surge: {
+          mild:         'Bond prices rising slightly — consistent with rate cut expectations.',
+          moderate:     `A ${abs}% bond rally typically signals rate cuts ahead. ${weightNote} Fixed income becomes more attractive.`,
+          severe:       `A ${abs}% bond surge mirrors flight-to-safety during major crises. ${weightNote} Equities may be under stress simultaneously.`,
+          catastrophic: `A ${abs}% bond explosion would be extraordinary. ${weightNote} This level of gain implies deep deflationary pressure.`,
+        },
+      },
+      Cash: {
+        drop: {
+          mild:         'Cash rarely loses value in nominal terms — this scenario models purchasing power erosion from inflation.',
+          moderate:     `A ${abs}% real cash erosion reflects high sustained inflation. ${weightNote} Consider inflation-hedged assets.`,
+          severe:       `A ${abs}% cash erosion mirrors hyperinflationary environments. ${weightNote} Cash-heavy portfolios are most vulnerable here.`,
+          catastrophic: `A ${abs}% cash collapse would indicate near-hyperinflationary conditions. ${weightNote} Hard assets and equities act as hedges.`,
+        },
+        surge: {
+          mild:         'Cash gaining value — consistent with deflationary pressure or strong SGD appreciation.',
+          moderate:     `A ${abs}% cash surge reflects significant currency appreciation or deflation. ${weightNote}`,
+          severe:       `A ${abs}% cash surge is extreme — would indicate deep deflationary forces. ${weightNote}`,
+          catastrophic: `A ${abs}% cash explosion is theoretically implausible in normal market conditions.`,
+        },
+      },
+      CPF: {
+        drop: {
+          mild:         'CPF returns are government-guaranteed at 2.5–4%. A drop here is a hypothetical stress test only.',
+          moderate:     `CPF is not subject to market risk — this scenario models a hypothetical policy change. ${weightNote}`,
+          severe:       `A ${abs}% CPF decline would require extraordinary government intervention. ${weightNote} This remains a hypothetical extreme.`,
+          catastrophic: `This scenario is theoretical — CPF capital and returns are guaranteed by the Singapore government.`,
+        },
+        surge: {
+          mild:         'CPF rates are fixed — a small increase would reflect a policy rate adjustment by the government.',
+          moderate:     `A ${abs}% CPF boost would reflect a significant policy change. ${weightNote} Positive for retirement adequacy.`,
+          severe:       `A ${abs}% CPF surge is hypothetical. ${weightNote} In practice, CPF rates are stable and government-controlled.`,
+          catastrophic: `This level of CPF gain is not realistic under current MAS and CPF Board frameworks.`,
+        },
+      },
+    }
+
+    const classEvents = events[cls] || {
+      drop: { mild: `A ${abs}% ${direction} in ${cls}.`, moderate: `A ${abs}% ${direction} in ${cls}. ${weightNote}`, severe: `A severe ${abs}% ${direction} in ${cls}. ${weightNote} Review your exposure.`, catastrophic: `A catastrophic ${abs}% ${direction} in ${cls}. ${weightNote} Significant portfolio impact expected.` },
+      surge: { mild: `A ${abs}% ${direction} in ${cls}.`, moderate: `A ${abs}% ${direction} in ${cls}. ${weightNote}`, severe: `A ${abs}% surge in ${cls}. ${weightNote} Consider rebalancing.`, catastrophic: `A ${abs}% explosion in ${cls}. ${weightNote} Extraordinary gains — rebalance to manage concentration.` },
+    }
+
+    return classEvents[direction]?.[severity] ?? null
+  }
+
+  // Live scenario impact preview (SGD change, before applying)
+  const scenarioPreviewDelta = (() => {
+    if (!result?.allocation || scenarioPct === 0) return null
+    const match = result.allocation.find(a => a.assetClass === scenarioClass)
+    if (!match) return null
+    return match.valueSgd * (scenarioPct / 100)
+  })()
   const fmtSgd       = (v) => 'S$ ' + Number(v).toLocaleString('en-SG', { maximumFractionDigits: 0 })
-  const scenarioLabel = scenarioActive
-    ? `${scenarioClass} ${scenarioPct > 0 ? '+' : ''}${scenarioPct}%`
+  const scenarioLabel = appliedScenario
+    ? `${appliedScenario.assetClass} ${appliedScenario.changePercent > 0 ? '+' : ''}${appliedScenario.changePercent}%`
     : null
 
   if (authLoading) return (
@@ -527,45 +628,6 @@ export default function App() {
           </button>
         </section>
 
-        {/* ---- Scenario Lab ---- */}
-        <section>
-          <h2>Scenario Lab</h2>
-
-          <label>Asset Class</label>
-          <select value={scenarioClass} onChange={e => setScenarioClass(e.target.value)}>
-            {assetClasses.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-
-          <label>
-            Change: <strong style={{ color: scenarioPct < 0 ? '#e74c3c' : '#2ecc71' }}>
-              {scenarioPct > 0 ? '+' : ''}{scenarioPct}%
-            </strong>
-          </label>
-          <input
-            type="range" min="-100" max="100" step="1"
-            value={scenarioPct}
-            onChange={e => setScenarioPct(Number(e.target.value))}
-            className="scenario-slider"
-          />
-          <div className="slider-labels">
-            <span>-100%</span><span>0%</span><span>+100%</span>
-          </div>
-
-          <div className="scenario-btns">
-            <button
-              className={`btn-apply ${scenarioActive ? 'active' : ''}`}
-              onClick={() => setScenarioActive(true)}
-            >Apply</button>
-            <button
-              className="btn-reset"
-              onClick={() => { setScenarioActive(false); setScenarioPct(-30); setScenarioClass('Crypto') }}
-            >Reset</button>
-          </div>
-
-          {scenarioActive && (
-            <div className="scenario-badge">Scenario: {scenarioLabel}</div>
-          )}
-        </section>
 
       </aside>
 
@@ -617,15 +679,89 @@ export default function App() {
               </div>
             </div>
 
-            {scenarioActive && result.scenarioImpact?.length > 0 && (
-              <div className="card mb-20 scroll-reveal">
-                <h2>Scenario Impact — Top Drivers</h2>
-                <p style={{ fontSize: 12, color: '#aaa', marginBottom: 12 }}>
-                  Applied: <strong>{scenarioLabel}</strong>
-                </p>
-                <ScenarioImpact items={result.scenarioImpact} fmtSgd={fmtSgd} />
+            {/* ---- Scenario Lab ---- */}
+            <div className="card mb-20 scroll-reveal scenario-lab-card">
+              <div className="sl-header">
+                <div>
+                  <h2>Scenario Lab</h2>
+                  <p className="sl-subtitle">Stress test your portfolio before markets move</p>
+                </div>
+                {scenarioActive && <div className="scenario-badge">{scenarioLabel}</div>}
               </div>
-            )}
+
+              {/* Controls */}
+              <div className="sl-controls">
+                <div className="sl-select-wrap">
+                  <label className="sl-label">Asset Class</label>
+                  <select className="sl-select" value={scenarioClass} onChange={e => setScenarioClass(e.target.value)}>
+                    {assetClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                <div className="sl-slider-wrap">
+                  <div className="sl-slider-top">
+                    <label className="sl-label">Market Change</label>
+                    <span className="sl-pct-badge" style={{ color: scenarioPct < 0 ? '#e74c3c' : scenarioPct > 0 ? '#2ecc71' : '#8b92a5' }}>
+                      {scenarioPct > 0 ? '+' : ''}{scenarioPct}%
+                    </span>
+                  </div>
+                  <input type="range" min="-100" max="100" step="1"
+                    value={scenarioPct}
+                    onChange={e => setScenarioPct(Number(e.target.value))}
+                    className="scenario-slider" />
+                  <div className="slider-labels"><span>-100%</span><span>0%</span><span>+100%</span></div>
+                </div>
+
+                <div className="sl-actions">
+                  {/* Live impact preview — always rendered so buttons never shift */}
+                  <div className="sl-preview">
+                    <span className="sl-preview-label">Estimated impact</span>
+                    <span className="sl-preview-value" style={{
+                      color: scenarioPreviewDelta === null ? '#3d4255'
+                           : scenarioPreviewDelta < 0 ? '#e74c3c' : '#2ecc71'
+                    }}>
+                      {scenarioPreviewDelta === null
+                        ? '—'
+                        : `${scenarioPreviewDelta > 0 ? '+' : ''}${fmtSgd(scenarioPreviewDelta)}`}
+                    </span>
+                  </div>
+                  <div className="sl-btns">
+                    <button className="sl-action-btn"
+                      onClick={() => {
+                        setScenarioActive(true)
+                        setAppliedScenario({ assetClass: scenarioClass, changePercent: scenarioPct })
+                      }}>Apply</button>
+                    <button className="sl-action-btn"
+                      onClick={() => {
+                        setScenarioActive(false)
+                        setAppliedScenario(null)
+                        setScenarioPct(0)
+                        setScenarioClass('Crypto')
+                      }}>Reset</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Impact breakdown */}
+              {scenarioActive && result.scenarioImpact?.length > 0 && (
+                <div className="sl-impact">
+                  <p className="sl-impact-label">Top holdings affected</p>
+                  <ScenarioImpact items={result.scenarioImpact} fmtSgd={fmtSgd} />
+                </div>
+              )}
+
+              {/* Contextual insight */}
+              {(() => {
+                const insight = getScenarioInsight(scenarioClass, scenarioPct, result)
+                if (!insight) return null
+                return (
+                  <div className="sl-insight">
+                    <span className="sl-insight-icon">💡</span>
+                    <p className="sl-insight-text">{insight}</p>
+                  </div>
+                )
+              })()}
+            </div>
 
             <div className="charts-scores-section scroll-reveal">
               <FinancialCharts result={result} fmtSgd={fmtSgd} />
